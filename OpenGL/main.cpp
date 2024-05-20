@@ -1,6 +1,6 @@
 #include <iostream>
 #include <glad/glad.h>
-
+#include <cmath>
 #include <GLFW/glfw3.h>
 
 // settings
@@ -10,38 +10,48 @@ const unsigned int SCR_HEIGHT = 600;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
-//Extremely simple shader
+//Extremely simple vertex shader
 //----------------------
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
+"layout (location = 1) in vec3 aColor;\n"
+
+"out vec3 ourColor; // we can specify a color output to the fragment shader\n"
+
 "void main()\n"
 "{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"   gl_Position = vec4(aPos, 1.0);\n"
+"   ourColor = aColor; //set ourColor to the input color we got from the vertex data\n"
 "}\0";
 
 //Fragment Shader
 //---------------
 const char* fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
+"in vec3 ourColor;\n"
+
 "void main()\n"
 "{\n"
-"FragColor = vec4(.63f, 0.19f, 0.74f, 1.0f);\n"
+"	FragColor = vec4(ourColor, 1.0);\n"
 "}\n"; 
 
 const char* fragmentShaderSource2 = "#version 330 core\n"
 "out vec4 FragColor;\n"
+"in vec3 ourColor;\n"
+
 "void main()\n"
 "{\n"
-"FragColor = vec4(.86f, 0.6f, 0.92f, 1.0f);\n"
+"	FragColor = vec4(ourColor, 1.0);\n"
 "}\n";
 
 
 //Normalized Device Coordinates 
 //-----------------------------
 float vertices[] = {
-	 0.95f,  0.2f, 0.0f, 
-	 0.5f, -0.2f, 0.0f,  
-	 0.95f, -0.5f, 0.0f, 
+	//positions			//colors
+	 0.95f,  0.8f, 0.0f, 1.0f,0.0f,0.0f,
+	 -0.3f, -0.2f, 0.0f,  0.0f, 1.0f, 0.0f,
+	 0.95f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
 };
 float vertices2[] = {
 	-0.95f, 0.5f, 0.0f,  // top right
@@ -141,12 +151,12 @@ int main() {
 	shaderProgram = glCreateProgram();
 
 	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
+	glAttachShader(shaderProgram, fragmentShader2);
 	glLinkProgram(shaderProgram);
 
 	shaderProgram2 = glCreateProgram();
 	glAttachShader(shaderProgram2, vertexShader);
-	glAttachShader(shaderProgram2, fragmentShader2);
+	glAttachShader(shaderProgram2, fragmentShader);
 	glLinkProgram(shaderProgram2);
 
 	//Checking if compilation for shader program was successful
@@ -174,8 +184,11 @@ int main() {
 	glBindVertexArray(VAO[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	// color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 	
 	//EBO binding
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);*/
@@ -210,15 +223,22 @@ int main() {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+
 		//Rendering color
 		glClearColor(0.2f, 0.3f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		float timeValue = glfwGetTime()*3;
+		float greenValue = (sin(timeValue) / 3.0f) + .5f;
+		int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
 
 		//Rendering Triangle
 		glUseProgram(shaderProgram);
 
 		glBindVertexArray(VAO[0]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 		glUseProgram(shaderProgram2);
 		glBindVertexArray(VAO[1]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
