@@ -26,9 +26,20 @@
     <ClInclude Include="shader.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vs" />
     <None Include="fragment.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="caruso.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="face.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
