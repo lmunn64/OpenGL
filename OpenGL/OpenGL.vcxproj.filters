@@ -41,5 +41,11 @@
     <Image Include="face.jpg">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="heart.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="nickandreese.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

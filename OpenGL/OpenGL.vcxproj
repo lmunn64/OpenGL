@@ -146,6 +146,8 @@
   <ItemGroup>
     <Image Include="caruso.png" />
     <Image Include="face.jpg" />
+    <Image Include="heart.jpg" />
+    <Image Include="nickandreese.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

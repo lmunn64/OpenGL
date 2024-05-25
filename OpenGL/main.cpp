@@ -6,6 +6,9 @@
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
 #include "shader.hpp"
+#include <glm/glm/glm.hpp>
+#include <glm/glm/gtc/matrix_transform.hpp>
+#include <glm/glm/gtc/type_ptr.hpp>
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -18,10 +21,10 @@ void processInput(GLFWwindow* window);
 //-----------------------------
 float vertices[] = {
 	 //positions		 //colors           //texture coords
-	 0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  2.0f, 2.0f,
-	 0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  2.0f, 0.0f,
+	 0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f,
+	 0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
 	-0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 
-	-0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 1.0f,  0.0f, 2.0f
+	-0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f
 };
 
 
@@ -43,6 +46,7 @@ unsigned int texture;
 unsigned int texture2;
 
 int main() {
+
 
 	//glfw initialization and configuration
 	//-------------------------------------
@@ -103,19 +107,22 @@ int main() {
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	//Texture setup
+	//Load first texture image
 	glGenTextures(1, &texture);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	//Texture set filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	//
 	int width, height, nrChannels;
+
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load("face.jpg", &width, &height, &nrChannels, 0);
+
+	unsigned char* data = stbi_load("heart.jpg", &width, &height, &nrChannels, 0);
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -129,23 +136,34 @@ int main() {
 	glGenTextures(1, &texture2);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texture2);
-
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	//Texture set filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 
 	//Load second texture image
 	stbi_set_flip_vertically_on_load(true);
 
-	data = stbi_load("caruso.png", &width, &height, &nrChannels, 0);
+	data = stbi_load("nickandreese.jpg", &width, &height, &nrChannels, 0);
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else {
 		std::cout << "ERROR::FAILED TO LOAD TEXTURE" << std::endl;
 	}
 	stbi_image_free(data);
+
+
+	//Transformations
+	// 
+	glm::mat4 trans = glm::mat4(1.0f); //set the transformation
+	
+	unsigned int transformLocation = glGetUniformLocation(shader.ID, "transform");
 
 	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
 	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
@@ -170,6 +188,15 @@ int main() {
 		//Rendering color
 		glClearColor(0.2f, 0.3f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+		//Transformations
+		glm::mat4 trans = glm::mat4(1.0f); //set the transformation
+
+		unsigned int transformLocation = glGetUniformLocation(shader.ID, "transform");
+
+		trans = glm::rotate(trans, (float)glfwGetTime() *4, glm::vec3(0.0, 0.0, 1.0));
+
+		trans = glm::translate(trans, glm::vec3(.5f, 0.0f, 0.0f));
+
 
 		//Rendering Triangle
 		// 
@@ -179,12 +206,12 @@ int main() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
+		//set transform uniform
+		glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
+
 		shader.use();
 		glBindVertexArray(VAO[0]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		/*shader.use();
-		glBindVertexArray(VAO[1]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);*/
 
 		//glfw swap buffers and poll IO events
 		//------------------------------------
