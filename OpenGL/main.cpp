@@ -40,6 +40,7 @@ unsigned int shaderProgram;
 unsigned int shaderProgram2;
 
 unsigned int texture;
+unsigned int texture2;
 
 int main() {
 
@@ -104,17 +105,17 @@ int main() {
 
 	//Texture setup
 	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	//Texture set filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	//
 	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data = stbi_load("face.jpg", &width, &height, &nrChannels, 0);
-
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -125,10 +126,33 @@ int main() {
 	}
 	stbi_image_free(data);
 
+	glGenTextures(1, &texture2);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	//Load second texture image
+	stbi_set_flip_vertically_on_load(true);
+
+	data = stbi_load("caruso.png", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else {
+		std::cout << "ERROR::FAILED TO LOAD TEXTURE" << std::endl;
+	}
+	stbi_image_free(data);
 
 	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
 	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 	glBindVertexArray(0);
+
+	shader.use();
+	shader.setInt("texture2", 1);
 
 	//Main render loop
 	//----------------
@@ -148,7 +172,12 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		//Rendering Triangle
+		// 
+		// bind textures on corresponding texture units
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		shader.use();
 		glBindVertexArray(VAO[0]);
