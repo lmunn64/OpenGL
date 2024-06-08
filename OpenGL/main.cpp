@@ -10,7 +10,7 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
 #include "camera.hpp"
-
+#include <vector>
 // settings
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 960;
@@ -19,7 +19,8 @@ const unsigned int SCR_HEIGHT = 960;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window, float deltaTime);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void createBox(double xpos, double ypos);
 //Normalized Device Coordinates 
 //-----------------------------
 //float vertices[] = {
@@ -74,17 +75,9 @@ float vertices[] = {
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-glm::vec3 cubePositions[] = {
+std::vector<glm::vec3> cubePositions = {
 	glm::vec3(0.0f,  0.0f,  -0.0f),
 	glm::vec3(3.0f,  0.0f, -0.7f),
-	glm::vec3(-1.5f, -1.2f, -2.5f),
-	glm::vec3(-1.4f, -1.5f, -1.0f),
-	glm::vec3(2.4f, -0.2f, -3.5f),
-	glm::vec3(.7f,  1.0f, -1.5f),
-	glm::vec3(1.3f, -2.0f, -2.5f),
-	glm::vec3(1.5f,  2.0f, -2.5f),
-	glm::vec3(1.5f,  0.2f, -1.5f),
-	glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
 //Vertex Buffer Object to be generated
@@ -102,6 +95,10 @@ unsigned int texture2;
 Camera camera;
 float lastX = SCR_WIDTH/2.0f, lastY = SCR_HEIGHT/2.0f;
 bool firstMouse = true;
+
+float normX, normY, normZ;
+
+glm::vec3 ray_wor;
 
 int main() {
 
@@ -129,6 +126,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //disable mouse view
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	//glad loading all OpenGL function pointers
 	//-----------------------------------------
@@ -259,9 +257,20 @@ int main() {
 		glm::mat4 trans = glm::mat4(1.0f); //set the transformation
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 model = glm::mat4(1.0f);
-		glm::mat4 model2 = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
-		
+
+		glm::vec3 ray_nds = glm::vec3(normX, normY, normZ);
+
+		glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+		glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+		ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+		ray_wor = glm::vec3((glm::inverse(view) * ray_eye).x, (glm::inverse(view) * ray_eye).y, (glm::inverse(view) * ray_eye).z);
+		std::cout << "you are at " << camera.cameraPos.x << ", " << camera.cameraPos.y << ", " << camera.cameraPos.z << std::endl;
+
+		// don't forget to normalise the vector at some point
+		ray_wor = glm::normalize(ray_wor);
 
 		//view and projection calculations
 		view = glm::lookAt(camera.cameraPos, camera.cameraPos + camera.cameraFront, camera.cameraUp);
@@ -276,24 +285,11 @@ int main() {
 
 		glBindVertexArray(VAO[0]);
 		
-		//first cube
-		model = glm::translate(model, cubePositions[0]);
-		float angle = 0.0f;
-		model = glm::rotate(model, glm::radians(angle), glm::vec3(3.0f, 0.3f, 0.5f));
-		
-		//set transform uniform
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-	
-		//second cube
-		model2 = glm::translate(model2, cubePositions[1]);
-		angle = 40.0f * (float)glfwGetTime()*6;
-		model2 = glm::rotate(model2, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-		
-		//set transform uniform
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model2));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
+		for (int i = 0; i < cubePositions.size(); i++) {
+			model = glm::translate(model, cubePositions[i]);
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 
 		//glfw swap buffers and poll IO events
 		//------------------------------------
@@ -329,6 +325,8 @@ void processInput(GLFWwindow* window, float deltaTime) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+	if (glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		std::cout << "mouse click" << std::endl;
 
 	camera.setCameraSpeed(2.5f * deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -362,4 +360,26 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 	yoffset *= sensitivity;
 
 	camera.processMouse(xoffset, yoffset);
+}
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	double xpos, ypos;
+	glfwGetCursorPos(window, &xpos, &ypos);
+	float x = (2.0f * xpos) / SCR_WIDTH - 1.0f;
+	float y = 1.0f - (2.0f * ypos) / SCR_HEIGHT;
+	float z = 1.0f;
+	
+	normX = x;
+	normY = y;
+	normZ = z;
+
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		std::cout << "mouse clicked at " << ray_wor.x << ", " << ray_wor.y << ", " << ray_wor.z << std::endl;
+
+		createBox(ray_wor.x, ray_wor.y);
+
+	}
+}
+void createBox(double xpos, double ypos) {
+	cubePositions.emplace_back(glm::vec3(0.0, 0.0, -1.0f));
 }
