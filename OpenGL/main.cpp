@@ -17,7 +17,7 @@ const unsigned int SCR_HEIGHT = 960;
 
 // prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window, Camera *camera, float deltaTime);
+void processInput(GLFWwindow* window, float deltaTime);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 //Normalized Device Coordinates 
@@ -98,6 +98,10 @@ unsigned int shaderProgram2;
 unsigned int texture1;
 unsigned int texture2;
 
+//Camera
+Camera camera;
+float lastX = SCR_WIDTH/2.0f, lastY = SCR_HEIGHT/2.0f;
+bool firstMouse = true;
 
 int main() {
 
@@ -119,9 +123,12 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+
+
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //disable mouse view
+	glfwSetCursorPosCallback(window, mouse_callback);
 
 	//glad loading all OpenGL function pointers
 	//-----------------------------------------
@@ -216,30 +223,22 @@ int main() {
 	shader.use();
 	shader.setInt("texture1", 0);
 
-	//camera system
-	Camera *camera = new Camera();
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
 
 	unsigned int locationReset = 2;
+
 	//Main render loop
 	//----------------
 	while (!glfwWindowShouldClose(window)) {
-		if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+		float currentFrame = (float)glfwGetTime();
 
-		//Process input
-		//--------------------
-		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		processInput(window, camera, deltaTime);
-		glfwSetCursorPosCallback(window, mouse_callback);
+		//Process input
+		//--------------------
+		processInput(window, deltaTime);
 
 		//Rendering color
 		glClearColor(0.2f, 0.3f, 0.5f, 1.0f);
@@ -265,7 +264,7 @@ int main() {
 		
 
 		//view and projection calculations
-		view = glm::lookAt(camera->cameraPos, camera->cameraPos + camera->cameraFront, camera->cameraUp);
+		view = glm::lookAt(camera.cameraPos, camera.cameraPos + camera.cameraFront, camera.cameraUp);
 	
 		projection = glm::perspective(glm::radians(55.f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
@@ -320,19 +319,47 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window, Camera *camera, float deltaTime) {
+void processInput(GLFWwindow* window, float deltaTime) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-	camera->setCameraSpeed(2.5f * deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->cameraPos += camera->cameraSpeed * camera->cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->cameraPos -= camera->cameraSpeed * camera->cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->cameraPos -= glm::normalize(glm::cross(camera->cameraFront, camera->cameraUp)) * camera->cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->cameraPos += glm::normalize(glm::cross(camera->cameraFront, camera->cameraUp)) * camera->cameraSpeed;
-}
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+
+	camera.setCameraSpeed(2.5f * deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.cameraPos += camera.cameraSpeed * camera.cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.cameraPos -= camera.cameraSpeed * camera.cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.cameraPos -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.cameraPos += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+}
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+
+	float xpos = static_cast<float>(xposIn);
+	float ypos = static_cast<float>(yposIn);
+
+	if (firstMouse) {
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	const float sensitivity = 0.1f;
+
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	camera.processMouse(xoffset, yoffset);
 }
