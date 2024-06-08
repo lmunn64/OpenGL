@@ -89,6 +89,7 @@ public:
 		glDeleteShader(fragment);
 		glDeleteShader(vertex);
 	}
+	
 	// use/activate the shader
 	void use() {
 		glUseProgram(ID);

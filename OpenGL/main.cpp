@@ -9,13 +9,16 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
+#include "camera.hpp"
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 960;
 
+// prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, Camera *camera, float deltaTime);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 //Normalized Device Coordinates 
 //-----------------------------
@@ -28,52 +31,52 @@ void processInput(GLFWwindow* window);
 //};
 
 float vertices[] = {
-		-0.2f, -0.2f, -0.2f,  0.0f, 0.0f,
-		 0.2f, -0.2f, -0.2f,  1.0f, 0.0f,
-		 0.2f,  0.2f, -0.2f,  1.0f, 1.0f,
-		 0.2f,  0.2f, -0.2f,  1.0f, 1.0f,
-		-0.2f,  0.2f, -0.2f,  0.0f, 1.0f,
-		-0.2f, -0.2f, -0.2f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-		-0.2f, -0.2f,  0.2f,  0.0f, 0.0f,
-		 0.2f, -0.2f,  0.2f,  1.0f, 0.0f,
-		 0.2f,  0.2f,  0.2f,  1.0f, 1.0f,
-		 0.2f,  0.2f,  0.2f,  1.0f, 1.0f,
-		-0.2f,  0.2f,  0.2f,  0.0f, 1.0f,
-		-0.2f, -0.2f,  0.2f,  0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
-		-0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
-		-0.2f,  0.2f, -0.2f,  1.0f, 1.0f,
-		-0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
-		-0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
-		-0.2f, -0.2f,  0.2f,  0.0f, 0.0f,
-		-0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-		 0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
-		 0.2f,  0.2f, -0.2f,  1.0f, 1.0f,
-		 0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
-		 0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
-		 0.2f, -0.2f,  0.2f,  0.0f, 0.0f,
-		 0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-		-0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
-		 0.2f, -0.2f, -0.2f,  1.0f, 1.0f,
-		 0.2f, -0.2f,  0.2f,  1.0f, 0.0f,
-		 0.2f, -0.2f,  0.2f,  1.0f, 0.0f,
-		-0.2f, -0.2f,  0.2f,  0.0f, 0.0f,
-		-0.2f, -0.2f, -0.2f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
-		-0.2f,  0.2f, -0.2f,  0.0f, 1.0f,
-		 0.2f,  0.2f, -0.2f,  1.0f, 1.0f,
-		 0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
-		 0.2f,  0.2f,  0.2f,  1.0f, 0.0f,
-		-0.2f,  0.2f,  0.2f,  0.0f, 0.0f,
-		-0.2f,  0.2f, -0.2f,  0.0f, 1.0f
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
 glm::vec3 cubePositions[] = {
 	glm::vec3(0.0f,  0.0f,  -0.0f),
-	glm::vec3(1.0f,  0.0f, -0.7f),
+	glm::vec3(3.0f,  0.0f, -0.7f),
 	glm::vec3(-1.5f, -1.2f, -2.5f),
 	glm::vec3(-1.4f, -1.5f, -1.0f),
 	glm::vec3(2.4f, -0.2f, -3.5f),
@@ -94,6 +97,7 @@ unsigned int shaderProgram2;
 
 unsigned int texture1;
 unsigned int texture2;
+
 
 int main() {
 
@@ -117,6 +121,7 @@ int main() {
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //disable mouse view
 
 	//glad loading all OpenGL function pointers
 	//-----------------------------------------
@@ -169,10 +174,10 @@ int main() {
 
 	stbi_set_flip_vertically_on_load(true);
 
-	unsigned char* data = stbi_load("caruso.png", &width, &height, &nrChannels, 0);
+	unsigned char* data = stbi_load("McChicken.jpg", &width, &height, &nrChannels, 0);
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else {
@@ -211,20 +216,30 @@ int main() {
 	shader.use();
 	shader.setInt("texture1", 0);
 
-	
+	//camera system
+	Camera *camera = new Camera();
+	float deltaTime = 0.0f;
+	float lastFrame = 0.0f;
+
 	unsigned int locationReset = 2;
 	//Main render loop
 	//----------------
 	while (!glfwWindowShouldClose(window)) {
-		//Process escape input
-		//--------------------
-		processInput(window);
 		if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+
+		//Process input
+		//--------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		processInput(window, camera, deltaTime);
+		glfwSetCursorPosCallback(window, mouse_callback);
 
 		//Rendering color
 		glClearColor(0.2f, 0.3f, 0.5f, 1.0f);
@@ -246,13 +261,12 @@ int main() {
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 model2 = glm::mat4(1.0f);
-
 		glm::mat4 projection = glm::mat4(1.0f);
 		
-		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-		model2 = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.8f, 1.0f * (float)glfwGetTime()*8, 0.0f));
 
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		//view and projection calculations
+		view = glm::lookAt(camera->cameraPos, camera->cameraPos + camera->cameraFront, camera->cameraUp);
+	
 		projection = glm::perspective(glm::radians(55.f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
 
@@ -260,7 +274,6 @@ int main() {
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
 
 		glBindVertexArray(VAO[0]);
 		
@@ -307,8 +320,19 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window) {
-
+void processInput(GLFWwindow* window, Camera *camera, float deltaTime) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	camera->setCameraSpeed(2.5f * deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera->cameraPos += camera->cameraSpeed * camera->cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera->cameraPos -= camera->cameraSpeed * camera->cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera->cameraPos -= glm::normalize(glm::cross(camera->cameraFront, camera->cameraUp)) * camera->cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera->cameraPos += glm::normalize(glm::cross(camera->cameraFront, camera->cameraUp)) * camera->cameraSpeed;
+}
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+
 }
